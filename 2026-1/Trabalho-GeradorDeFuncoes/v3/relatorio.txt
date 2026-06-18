@@ -13,16 +13,16 @@ parâmetro (assinatura exata do enunciado):
 
 O código gerado segue a convencao System V AMD64 (os 3 primeiros argumentos inteiros/ponteiros vao em %rdi, %rsi e %rdx) e tem a seguinte estrutura:
 
-  - Prologo:        push %rbp ; mov %rsp,%rbp
+  - Prólogo:        push %rbp ; mov %rsp,%rbp
                     (alinha a pilha em 16 bytes; como nada mais e empilhado, a
                      pilha permanece alinhada na hora do call, o que e
                      necessário para chamar funções de biblioteca como memcmp)
   - Colocacar dos parâmetros nos registradores, em duas fases (item 2)
   - Chamada:        movabs $f,%rax ; call *%rax   (call indireto)
-  - Epilogo:        leave ; ret   (preserva o valor de retorno de f em %rax)
+  - Epílogo:        leave ; ret   (preserva o valor de retorno de f em %rax)
 
 
-2. Tratamento dos parametros (PARAM, FIX, IND)
+2. Tratamento dos parâmetros (PARAM, FIX, IND)
 ----------------------------------------------
 O ponto é não perder os parâmetros não amarrados (PARAM) recebidos
 pela função gerada, já que a posição deles nos registradores pode mudar entre
