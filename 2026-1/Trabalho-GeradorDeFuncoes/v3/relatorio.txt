@@ -1,95 +1,74 @@
-Relatorio - Gerador Dinamico de Funcoes (cria_func)
+Relatorio - Trabalho 2 - Gerador Dinamico de Funcoes (cria_func)
 INF1018 - Software Basico - 2026.1
 
-Integrantes do grupo:
-  Nome_do_Aluno1  Matricula  Turma
-  Nome_do_Aluno2  Matricula  Turma
+Daniel Santana Souza  2310995  3WA
 
 
 1. Descricao da implementacao
 -----------------------------
-A funcao cria_func gera, em tempo de execucao, o codigo de maquina x86-64 de
-uma nova versao da funcao f, gravando os bytes no vetor "codigo" recebido como
-parametro (assinatura exata do enunciado):
+A função cria_func gera o código de maquina x86-64 de uma nova versao da função f, gravando os bytes no vetor "código" recebido como
+parâmetro (assinatura exata do enunciado):
 
     void cria_func(void* f, DescParam params[], int n, unsigned char codigo[]);
 
-O codigo gerado segue a convencao System V AMD64 (os 3 primeiros argumentos
-inteiros/ponteiros vao em %rdi, %rsi e %rdx) e tem a seguinte estrutura:
+O código gerado segue a convencao System V AMD64 (os 3 primeiros argumentos inteiros/ponteiros vao em %rdi, %rsi e %rdx) e tem a seguinte estrutura:
 
   - Prologo:        push %rbp ; mov %rsp,%rbp
                     (alinha a pilha em 16 bytes; como nada mais e empilhado, a
                      pilha permanece alinhada na hora do call, o que e
-                     necessario para chamar funcoes de biblioteca como memcmp)
-  - Colocacao dos parametros nos registradores, em duas fases (ver item 2)
+                     necessário para chamar funções de biblioteca como memcmp)
+  - Colocacar dos parâmetros nos registradores, em duas fases (item 2)
   - Chamada:        movabs $f,%rax ; call *%rax   (call indireto)
   - Epilogo:        leave ; ret   (preserva o valor de retorno de f em %rax)
 
 
 2. Tratamento dos parametros (PARAM, FIX, IND)
 ----------------------------------------------
-O ponto delicado e nao perder os parametros nao amarrados (PARAM) recebidos
-pela funcao gerada, ja que a posicao deles nos registradores pode mudar entre
-a funcao gerada e a chamada a f.
+O ponto é não perder os parâmetros não amarrados (PARAM) recebidos
+pela função gerada, já que a posição deles nos registradores pode mudar entre
+a função gerada e a chamada a f.
 
-Fase 1 - parametros PARAM:
-  O j-esimo PARAM chega no registrador de argumento de indice j (%rdi, %rsi,
-  %rdx) e deve ir para o registrador da posicao i da chamada a f. Como o numero
-  de PARAMs ate a posicao i nunca passa de i+1, vale sempre i >= j (destino a
-  direita ou igual a origem). Processando as posicoes de tras para frente
-  (i decrescente), nenhuma origem ainda necessaria e sobrescrita. As movimenta-
-  coes usam movq %r(src),%r(dst).
+Fase 1 - parâmetros PARAM:
+  O j-esimo PARAM chega no registrador de argumento de índice j (%rdi, %rsi,
+  %rdx) e deve ir para o registrador da posição i da chamada a f. Como o número
+  de PARAMs ate a posição i nunca passa de i+1, vale sempre i >= j (destino a
+  direita ou igual a origem). Processando as posições de trás para frente
+  (i decrescente), nenhuma origem ainda necessária e sobrescrita. As movimentações usam movq %r(src),%r(dst).
 
 Fase 2 - parametros amarrados:
   FIX inteiro:   movl  $imm32, %e(reg)
   FIX ponteiro:  movabs $imm64, %r(reg)
-  IND inteiro:   movabs $endereco,%r(reg) ; movl (%r(reg)),%e(reg)
-  IND ponteiro:  movabs $endereco,%r(reg) ; movq (%r(reg)),%r(reg)
-  Como a fase 2 ocorre depois da fase 1, os registradores de origem dos PARAMs
-  ja foram consumidos e podem ser sobrescritos com seguranca.
+  IND inteiro:   movabs $endereço,%r(reg) ; movl (%r(reg)),%e(reg)
+  IND ponteiro:  movabs $endereço,%r(reg) ; movq (%r(reg)),%r(reg)
+  Como a fase 2 ocorre depois da fase 1, os registradores de origem dos PARAMs já foram consumidos e podem ser sobrescritos com segurança.
 
-
-3. Como compilar e testar
--------------------------
-    gcc -Wall -Wa,--execstack -o teste cria_func.c teste.c
-    ./teste
-
-A opcao -Wa,--execstack e obrigatoria porque o vetor "codigo" e uma variavel
-local (na pilha) e nele e gravado o codigo de maquina que sera executado; sem
-ela o sistema operacional aborta o programa ao tentar executar codigo na area
-de dados.
-
-
-4. Testes realizados
+3. Testes realizados
 --------------------
-O arquivo teste.c contem uma bateria automatica com 18 casos. Todos passam
-(Total corretos = 18 de 18). Os casos cobrem:
+Dentre os 18 casos, todos passam. Os casos cobrem:
 
   Exemplos do enunciado:
-    - mult(x,10): amarra o 2o parametro (FIX = 10), repassa o 1o; checado para
+    - mult(x,10): amarra o 2o parâmetro (FIX = 10), repassa o 1o; checado para
       x = 1..10 (resultados 10,20,...,100). OK
-    - mult com o 1o parametro amarrado a uma variavel (IND) e o 2o fixo, funcao
+    - mult com o 1o parâmetro amarrado a uma variável (IND) e o 2o fixo, função
       gerada chamada sem argumentos. OK
     - memcmp: amarra a string fixa (FIX, ponteiro) e repassa os outros dois
-      parametros (PARAM ponteiro e PARAM inteiro); teste de prefixo verdadeiro
+      parâmetros (PARAM ponteiro e PARAM inteiro); teste de prefixo verdadeiro
       e falso. OK
 
-  1 parametro (todas as combinacoes tipo x origem):
-    - inteiro PARAM / FIX / IND .................. OK
-    - ponteiro PARAM / FIX / IND ................. OK
+  1 parâmetro (todas as combinações tipo x origem):
+    - inteiro PARAM / FIX / IND - OK
+    - ponteiro PARAM / FIX / IND - OK
 
-  3 parametros inteiros (varias posicoes de PARAM/FIX/IND):
-    - param, param, fixo ......................... OK
-    - fixo, param, param ......................... OK
-    - param, fixo, param ......................... OK
-    - param, indireto, fixo ...................... OK
+  3 parâmetros inteiros (varias posições de PARAM/FIX/IND):
+    - param, param, fixo - OK
+    - fixo, param, param - OK
+    - param, fixo, param - OK
+    - param, indireto, fixo - OK
 
-  3 parametros de tipos diferentes (int e ponteiro misturados):
-    - int fixo, ptr fixo, int param .............. OK
-    - int indireto, ptr param, int fixo .......... OK
-    - int fixo, ptr fixo, int indireto ........... OK
-    - int param, ptr param, int fixo ............. OK
+  3 parâmetros de tipos diferentes (int e ponteiro misturados):
+    - int fixo, ptr fixo, int param - OK
+    - int indireto, ptr param, int fixo - OK
+    - int fixo, ptr fixo, int indireto - OK
+    - int param, ptr param, int fixo - OK
 
-Nao foram identificados casos com falha dentro do escopo do enunciado
-(minimo de 1 e maximo de 3 parametros, dos tipos INT_PAR e PTR_PAR, com
-origens PARAM, FIX e IND).
+Nao encontrei casos com falha dentro do escopo do enunciado (minimo de 1 e maximo de 3 parametros, dos tipos INT_PAR e PTR_PAR, com origens PARAM, FIX e IND).
